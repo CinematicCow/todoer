@@ -63,9 +63,9 @@ If you have any feedback, please open up an issue.
 
 ## Roadmap
 
-[ ] Additional OS support
-[x] Add a datasource for consistent data
-[ ] Work on the UI
+- [ ] Additional OS support
+- [x] Add a datasource for consistent data
+- [ ] Work on the UI
 
 ## License
 
