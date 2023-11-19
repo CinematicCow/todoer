@@ -54,6 +54,7 @@ Now, simply execute the binary
 - Press `esc` to unfocus the text input and move around.
 - Move up & down via the arrow keys or `kj` vim keybinding.
 - Press `space` to cross off a todo.
+- To delete all completed todos press `D`
 - For more press `?`
 
 ## Feedback
@@ -62,9 +63,9 @@ If you have any feedback, please open up an issue.
 
 ## Roadmap
 
-- Additional OS support
-- Add a datasource for consistent data
-- Work on the UI
+[ ] Additional OS support
+[x] Add a datasource for consistent data
+[ ] Work on the UI
 
 ## License
 
