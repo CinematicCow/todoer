@@ -3,6 +3,8 @@ package db
 import (
 	"encoding/json"
 	"log"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/boltdb/bolt"
@@ -12,7 +14,7 @@ var db *bolt.DB
 
 const (
 	dbName = "todoer.db"
-	dbFile = "/tmp/" + dbName
+	dbFile = ".todoer"
 )
 
 type Todo struct {
@@ -24,7 +26,19 @@ type Todo struct {
 // initializes the database and creates the necessary bucket for todos.
 func init() {
 
-	df, err := bolt.Open(dbFile, 0600, nil)
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal("Could not get home dir: ", err)
+	}
+	dbDir := filepath.Join(home, dbFile)
+
+	err = os.MkdirAll(dbDir, os.ModePerm)
+	if err != nil {
+		log.Fatal("Could not create db dir: ", err)
+	}
+	dbPath := filepath.Join(dbDir, dbName)
+
+	df, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal("Could not open db: ", err)
 	}
