@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"seeli/db"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -14,7 +15,19 @@ type (
 	errMsg error
 )
 
-var choices = []string{"buy milk", "buy butter", "water the plants"}
+// var choices = []string{"buy milk", "buy butter", "water the plants"}
+var todos []db.Todo
+
+func init() {
+
+	ts, err := db.GetAllTodos()
+	if err != nil {
+		log.Fatal("Could not get todos: ", err)
+	}
+
+	todos = ts
+
+}
 
 type keyMap struct {
 	Up    key.Binding
@@ -24,6 +37,7 @@ type keyMap struct {
 	Help  key.Binding
 	Quit  key.Binding
 	Enter key.Binding
+	D     key.Binding
 }
 
 type model struct {
@@ -47,7 +61,7 @@ func (k keyMap) ShortHelp() []key.Binding {
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Esc, k.Space},
-		{k.Enter, k.Help, k.Quit},
+		{k.Enter, k.Help, k.D, k.Quit},
 	}
 }
 
@@ -59,6 +73,7 @@ var keys = keyMap{
 	Help:  key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "toggle help")),
 	Quit:  key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 	Enter: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "add a new todo")),
+	D:     key.NewBinding(key.WithKeys("D"), key.WithHelp("D", "delete completed todos")),
 }
 
 func initialModel() model {
@@ -113,9 +128,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// handle add new todo
 		case "enter":
 			if m.textInput.Focused() {
-
 				choice := string(m.textInput.Value())
-				choices = append(choices, choice)
+				// choices = append(choices, choice)
+				if err := db.AddToDB(choice); err != nil {
+					m.err = err
+					return m, nil
+				}
+				todos = append(todos, db.Todo{Text: choice, Completed: false})
 				m.textInput.Reset()
 				return m, nil
 			} else {
@@ -131,7 +150,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "down", "j":
 			if !m.textInput.Focused() {
-				if m.cursor < len(choices)-1 {
+				if m.cursor < len(todos)-1 {
 					m.cursor++
 				}
 			}
@@ -139,13 +158,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// handle selection
 		case " ":
 			if !m.textInput.Focused() {
+
 				_, ok := m.selected[m.cursor]
 				if ok {
 					delete(m.selected, m.cursor)
 				} else {
 					m.selected[m.cursor] = struct{}{}
+					// Mark the todo as completed in the database
+					err := db.MarkAsCompleted(todos[m.cursor].ID)
+					if err != nil {
+						m.err = err
+						return m, nil
+					}
+					// Update the todo in the local slice
+					todos[m.cursor].Completed = true
 				}
 			}
+
+		// handle delete completed
+		case "D":
+			if !m.textInput.Focused() {
+				count, err := db.DeleteCompletedTodos()
+				if err != nil {
+					m.err = err
+					return m, nil
+				}
+				fmt.Printf("Deleted %d todos\n", count)
+				return m, tea.Quit
+			}
+
 		// handle q-uit
 		case "q":
 			if !m.textInput.Focused() {
@@ -167,16 +208,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	s := "Your Todos\n\n"
 
-	for i, choice := range choices {
+	for i, choice := range todos {
 		cursor := "  "
 		if m.cursor == i {
 			cursor = "👉"
 		}
-		checked := "  "
+		var checked string
+		if choice.Completed {
+			checked = "❌"
+		} else {
+			checked = "  "
+		}
 		if _, ok := m.selected[i]; ok {
 			checked = "❌"
 		}
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+
+		// s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice.Text)
 	}
 	helpView := m.help.View(m.keys)
 	s += fmt.Sprintf("%s\n\n---\n%s\n", m.textInput.View(), helpView)

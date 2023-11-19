@@ -36,7 +36,7 @@ make run
 
 Install from releases
 
-Head on to the releases page and download the binary. After downloading, set permissions for the binary to execute.
+Head on to the [releases page](https://github.com/CinematicCow/todoer/releases/) and download the binary. After downloading, set permissions for the binary to execute.
 
 ```bash
 chmod +x todoer
